@@ -5,30 +5,38 @@
 package main
 
 import (
+	"flag"
 	"github.com/intel-go/yanff/flow"
 	"github.com/intel-go/yanff/packet"
 	"github.com/intel-go/yanff/rules"
 )
 
-var L3Rules *rules.L3Rules
+var (
+	L3Rules *rules.L3Rules
+
+	SEND_PORT uint
+	RECV_PORT uint
+)
 
 // Main function for constructing packet processing graph.
 func main() {
-	// Init YANFF system
+	flag.UintVar(&SEND_PORT, "SEND_PORT", 0, "port for sender")
+	flag.UintVar(&RECV_PORT, "RECV_PORT", 0, "port for receiver")
+
+	// Init YANFF system at 16 available cores.
 	flow.SystemInit(16)
 
 	// Get splitting rules from access control file.
-	//L2Rules = rules.GetL3RulesFromORIG("test-handle2-l2rules.conf")
 	L3Rules = rules.GetL3RulesFromORIG("test-handle2-l3rules.conf")
 
 	// Receive packets from 0 port
-	flow1 := flow.SetReceiver(0)
+	flow1 := flow.SetReceiver(uint8(RECV_PORT))
 
 	// Handle packet flow
 	flow.SetHandler(flow1, L3Handler, nil) // ~33% of packets should left in flow1
 
 	// Send each flow to corresponding port. Send queues will be added automatically.
-	flow.SetSender(flow1, 0)
+	flow.SetSender(flow1, uint8(SEND_PORT))
 
 	// Begin to process packets.
 	flow.SystemStart()

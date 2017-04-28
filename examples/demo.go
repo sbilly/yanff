@@ -11,14 +11,23 @@ import "github.com/intel-go/yanff/rules"
 import "flag"
 import "time"
 
-var L2Rules *rules.L2Rules
-var L3Rules *rules.L3Rules
-var load uint
-var cores uint
+var (
+	L2Rules *rules.L2Rules
+	L3Rules *rules.L3Rules
+	load    uint
+	cores   uint
+
+	RECV_PORT  uint
+	SEND_PORT1 uint
+	SEND_PORT2 uint
+)
 
 func main() {
 	flag.UintVar(&load, "load", 1000, "Use this for regulating 'load intensity', number of iterations")
 	flag.UintVar(&cores, "cores", 16, "Number of cores to use by system")
+	flag.UintVar(&RECV_PORT, "RECV_PORT", 0, "port for receiver")
+	flag.UintVar(&SEND_PORT1, "SEND_PORT1", 1, "port for 1st sender")
+	flag.UintVar(&SEND_PORT2, "SEND_PORT2", 2, "port for 2nd sender")
 
 	// Initialize YANFF library at requested number of cores
 	flow.SystemInit(cores)
@@ -29,7 +38,7 @@ func main() {
 	go updateSeparateRules()
 
 	// Receive packets from zero port. One queue will be added automatically.
-	firstFlow := flow.SetReceiver(0)
+	firstFlow := flow.SetReceiver(uint8(RECV_PORT))
 
 	// Separate packets for additional flow due to some rules
 	secondFlow := flow.SetSeparator(firstFlow, L3Separator, nil)
@@ -38,8 +47,8 @@ func main() {
 	flow.SetHandler(firstFlow, heavyFunc, nil)
 
 	// Send both flows each one to one port. Queues will be added automatically.
-	flow.SetSender(firstFlow, 1)
-	flow.SetSender(secondFlow, 2)
+	flow.SetSender(firstFlow, uint8(SEND_PORT1))
+	flow.SetSender(secondFlow, uint8(SEND_PORT2))
 
 	flow.SystemStart()
 }

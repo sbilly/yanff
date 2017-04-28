@@ -61,13 +61,21 @@ var (
 	DSTPORT_2 uint16 = 222
 
 	testDoneEvent *sync.Cond = nil
+
+	SEND_PORT  uint
+	RECV_PORT1 uint
+	RECV_PORT2 uint
+	RECV_PORT3 uint
 )
 
 func main() {
 	flag.Uint64Var(&PASSED_LIMIT, "PASSED_LIMIT", PASSED_LIMIT, "received/sent minimum ratio to pass test")
 	flag.Uint64Var(&SPEED, "SPEED", SPEED, "speed of generator, Pkts/s")
+	flag.UintVar(&SEND_PORT, "SEND_PORT", 0, "port for sender")
+	flag.UintVar(&RECV_PORT1, "RECV_PORT1", 0, "port for 1st receiver")
+	flag.UintVar(&RECV_PORT2, "RECV_PORT2", 1, "port for 2nd receiver")
 
-	// Init YANFF system at 20 available cores
+	// Init YANFF system at 20 available cores.
 	flow.SystemInit(20)
 
 	var m sync.Mutex
@@ -75,14 +83,14 @@ func main() {
 
 	// Create first packet flow
 	outputFlow := flow.SetGenerator(generatePacket, SPEED, nil)
-	flow.SetSender(outputFlow, 0)
+	flow.SetSender(outputFlow, uint8(SEND_PORT))
 
 	// Create receiving flows and set a checking function for it
-	inputFlow1 := flow.SetReceiver(0)
-	flow.SetHandler(inputFlow1, checkPacketsOn2Port, nil)
+	inputFlow1 := flow.SetReceiver(uint8(RECV_PORT1))
+	flow.SetHandler(inputFlow1, checkInputFlow1, nil)
 
-	inputFlow2 := flow.SetReceiver(1)
-	flow.SetHandler(inputFlow2, checkPacketsOn3Port, nil)
+	inputFlow2 := flow.SetReceiver(uint8(RECV_PORT2))
+	flow.SetHandler(inputFlow2, checkInputFlow2, nil)
 
 	flow.SetStopper(inputFlow1)
 	flow.SetStopper(inputFlow2)
@@ -119,8 +127,8 @@ func main() {
 	println("Group1 ratio =", recv1*100/sent1, "%")
 	println("Group2 ratio =", recv2*100/sent2, "%")
 
-	println("Group1 proportion in received flow =", p1, "%")
-	println("Group2 proportion in received flow =", p2, "%")
+	println("Group1 proportion of packets received on", RECV_PORT1, "port =", p1, "%")
+	println("Group2 proportion of packets received on", RECV_PORT2, "port =", p2, "%")
 
 	println("Broken = ", broken, "packets")
 
@@ -178,8 +186,7 @@ func generatePacketGroup2(pkt *packet.Packet, context flow.UserContext) {
 	atomic.AddUint64(&sentPacketsGroup2, 1)
 }
 
-// Count and check packets received on 2 port
-func checkPacketsOn2Port(pkt *packet.Packet, context flow.UserContext) {
+func checkInputFlow1(pkt *packet.Packet, context flow.UserContext) {
 	recvCount := atomic.AddUint64(&recvPackets, 1)
 
 	offset := pkt.ParseL4Data()
@@ -209,8 +216,7 @@ func checkPacketsOn2Port(pkt *packet.Packet, context flow.UserContext) {
 	}
 }
 
-// Count and check packets received on 3 port
-func checkPacketsOn3Port(pkt *packet.Packet, context flow.UserContext) {
+func checkInputFlow2(pkt *packet.Packet, context flow.UserContext) {
 	recvCount := atomic.AddUint64(&recvPackets, 1)
 
 	offset := pkt.ParseL4Data()

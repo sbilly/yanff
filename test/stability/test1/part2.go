@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/intel-go/yanff/flow"
@@ -13,15 +14,23 @@ import (
 	"github.com/intel-go/yanff/test/stability/test1/common"
 )
 
+var (
+	cores     uint
+	SEND_PORT uint
+	RECV_PORT uint
+)
+
 // Main function for constructing packet processing graph.
 func main() {
-	// Init YANFF system
+	flag.UintVar(&RECV_PORT, "RECV_PORT", 0, "port for receiver")
+	flag.UintVar(&SEND_PORT, "SEND_PORT", 1, "port for sender")
+
+	// Init YANFF system at 16 available cores.
 	flow.SystemInit(16)
 
-	// Receive packets from zero port. Receive queue will be added automatically.
-	inputFlow := flow.SetReceiver(0)
+	inputFlow := flow.SetReceiver(uint8(RECV_PORT))
 	flow.SetHandler(inputFlow, fixPacket, nil)
-	flow.SetSender(inputFlow, 1)
+	flow.SetSender(inputFlow, uint8(SEND_PORT))
 
 	// Begin to process packets.
 	flow.SystemStart()
