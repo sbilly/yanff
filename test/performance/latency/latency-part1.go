@@ -34,7 +34,7 @@ var (
 	BINS         int    = 10
 	SKIP_NUMBER  uint64 = 100000
 	SPEED        uint64 = 1000000
-	PASSED_LIMIT uint64 = 90
+	PASSED_LIMIT uint64 = 65
 
 	PACKET_SIZE    uint64 = 128
 	SERV_DATA_SIZE uint64 = 46 // Ether + IPv4 + UDP + 4
@@ -83,15 +83,20 @@ func main() {
 	testDoneEvent = sync.NewCond(&m)
 
 	// Initialize YANFF library at 16 available cores
-	flow.SystemInit(16)
+	flow.SystemInit(30)
 	payloadSize = PACKET_SIZE - SERV_DATA_SIZE
 
 	// Create packet flow
 	outputFlow := flow.SetGenerator(generatePackets, SPEED, nil)
+	outputFlow2 := flow.SetPartitioner(outputFlow, 350, 350)
+
 	flow.SetSender(outputFlow, 0)
+	flow.SetSender(outputFlow2, 0)
 
 	// Create receiving flow and set a checking function for it
-	inputFlow := flow.SetReceiver(1)
+	inputFlow1 := flow.SetReceiver(1)
+	inputFlow2 := flow.SetReceiver(1)
+	inputFlow := flow.SetMerger(inputFlow1, inputFlow2)
 
 	// Calculate latency only for 1 of SKIP_NUMBER packets.
 	latFlow := flow.SetPartitioner(inputFlow, SKIP_NUMBER, 1)
