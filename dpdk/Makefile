@@ -27,8 +27,10 @@ $(DPDK_DIR)/$(DPDK_INSTALL_DIR): $(DPDK_DIR)
 	$(MAKE) -C $(DPDK_DIR) install T=$(RTE_TARGET) DESTDIR=$(DPDK_INSTALL_DIR)
 
 $(PKTGEN_DIR):
-	curl http://dpdk.org/browse/apps/pktgen-dpdk/snapshot/pktgen-v$(PKTGEN_VERSION).tar.xz | tar xJ
-	cd $(PKTGEN_DIR) && patch -p1 < ../pktgen_3.1.0.patch
+	# curl http://dpdk.org/browse/apps/pktgen-dpdk/snapshot/pktgen-v$(PKTGEN_VERSION).tar.xz | tar xJ
+        curl https://codeload.github.com/sdnfv/onvm-pktgen/tar.gz/pktgen-v$(PKTGEN_VERSION) | tar xz
+        mv onvm-pktgen-pktgen-v$(PKTGEN_VERSION) $(PKTGEN_DIR)
+        cd $(PKTGEN_DIR) && patch -p1 < ../pktgen_3.1.0.patch
 
 $(PKTGEN_DIR)/app/app/$(RTE_TARGET)/pktgen: $(DPDK_DIR)/$(DPDK_INSTALL_DIR) $(PKTGEN_DIR)
 	$(MAKE) -j1 -C $(PKTGEN_DIR)
